@@ -277,3 +277,170 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
+
+version 2 :
+'use client';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Box, Typography, Tooltip, Button } from '@mui/material';
+import {
+  GridColDef,
+  GridPaginationModel,
+  GridSortModel,
+  GridFilterModel,
+} from '@mui/x-data-grid';
+import usecolumns from '@/books/usecolumn';
+import Applayout from '@/components/appLayout/page';
+import LayoutProperties from '../../mockData/appLayoutProps';
+import { GLOBAL_TABLE_PAGINATION_OPTIONS } from '@/config/tableConfig';
+import { DataGridComponent } from '@/components/DataGrid';
+import { TableRowData } from '@/interfaces/types';
+
+const Dashboard = () => {
+  const { dashboardColumns } = usecolumns();
+  const [dashboardLinks, setDashboardLinks] = useState<TableRowData[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setLoading(true);
+    fetch('/api/dashboard')
+      .then((res) => res.json())
+      .then((data) => {
+        setDashboardLinks(data);
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, []);
+
+  const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({
+    page: 0,
+    pageSize: 50,
+  });
+  const [sortModel, setSortModel] = useState<GridSortModel>([]);
+  const [filterModel, setFilterModel] = useState<GridFilterModel>({
+    items: [],
+  });
+
+  const gridColumns: GridColDef[] = useMemo(() => {
+    const tooltipColumns = ['linkName', 'link'];
+    return dashboardColumns.map((col) => {
+      const baseCol: GridColDef = {
+        field: col.id,
+        headerName: col.label,
+        flex: 1,
+        sortable: col.filter !== false,
+        filterable: col.filter !== false,
+        renderCell: (params) => {
+          if (col.id === 'view') {
+            return (
+              <a
+                href="source-monitoring/source-changes"
+                className="text-blue-600 hover:text-blue-800 font-medium underline transition-colors"
+              >
+                View
+              </a>
+            );
+          }
+
+          if (tooltipColumns.includes(col.id)) {
+            return (
+              <Tooltip title={params.value || '-'} placement="top" arrow>
+                <span
+                  className="cursor-pointer overflow-hidden text-ellipsis whitespace-nowrap text-gray-700"
+                >
+                  {params.value || '-'}
+                </span>
+              </Tooltip>
+            );
+          }
+          return (
+            <span className="text-gray-700">
+              {params.value || '-'}
+            </span>
+          );
+        },
+      };
+
+      if (col.width) baseCol.width = col.width;
+      if (col.flex) baseCol.flex = col.flex;
+      if (col.minWidth) baseCol.minWidth = col.minWidth;
+      if (col.maxWidth) baseCol.maxWidth = col.maxWidth;
+
+      return baseCol;
+    });
+  }, [dashboardColumns]);
+
+  return (
+    <Applayout {...LayoutProperties}>
+      <div className="container mx-auto px-6 py-8">
+        <Box
+          className="bg-white shadow-lg rounded-lg p-6"
+          sx={{
+            minHeight: 'calc(100vh - 120px)',
+            display: 'flex',
+            flexDirection: 'column',
+          }}
+        >
+          <Box className="flex justify-between items-center mb-6">
+            <Typography
+              variant="h5"
+              className="font-bold text-gray-800"
+            >
+              Source Notifications
+            </Typography>
+            <Button
+              variant="contained"
+              className="bg-blue-600 hover:bg-blue-700 text-white font-medium"
+              onClick={() => setDashboardLinks([])} // Example action
+            >
+              Refresh Data
+            </Button>
+          </Box>
+
+          <Box sx={{ flexGrow: 1, overflow: 'hidden' }}>
+            <DataGridComponent
+              columns={gridColumns}
+              rows={dashboardLinks}
+              paginationModel={paginationModel}
+              onPaginationModelChange={setPaginationModel}
+              pageSizeOptions={GLOBAL_TABLE_PAGINATION_OPTIONS}
+              rowCount={dashboardLinks.length}
+              serverPagination={false}
+              sortModel={sortModel}
+              onSortModelChange={setSortModel}
+              sortingMode="client"
+              filterModel={filterModel}
+              onFilterModelChange={setFilterModel}
+              loading={loading}
+              getRowId={(row) => row.id?.toString() || Math.random().toString()}
+              disableRowSelectionOnClick
+              className="border-0"
+              sx={{
+                '& .MuiDataGrid-root': {
+                  border: 'none',
+                  backgroundColor: '#fff',
+                },
+                '& .MuiDataGrid-cell': {
+                  padding: '12px',
+                  color: '#374151',
+                },
+                '& .MuiDataGrid-columnHeaders': {
+                  backgroundColor: '#f9fafb',
+                  color: '#111827',
+                  fontWeight: 600,
+                },
+                '& .MuiDataGrid-row:hover': {
+                  backgroundColor: '#f3f4f6',
+                },
+                '& .MuiDataGrid-footerContainer': {
+                  backgroundColor: '#f9fafb',
+                },
+              }}
+            />
+          </Box>
+        </Box>
+      </div>
+    </Applayout>
+  );
+};
+
+export default Dashboard;
