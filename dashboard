@@ -1,0 +1,279 @@
+'use client';
+import React, { useEffect, useMemo, useState } from 'react';
+import { 
+  Box, 
+  Typography, 
+  Tooltip, 
+  CircularProgress,
+  IconButton,
+  Paper,
+  useTheme
+} from '@mui/material';
+import {
+  GridColDef,
+  GridPaginationModel,
+  GridSortModel,
+  GridFilterModel,
+  GridRowParams,
+} from '@mui/x-data-grid';
+import { Refresh, Visibility, OpenInNew } from '@mui/icons-material';
+import usecolumns from '@/books/usecolumn';
+import Applayout from '@/components/appLayout/page';
+import LayoutProperties from '../../mockData/appLayoutProps';
+import { GLOBAL_TABLE_PAGINATION_OPTIONS } from '@/config/tableConfig';
+import { DataGridComponent } from '@/components/DataGrid';
+import { TableRowData } from '@/interfaces/types';
+
+const Dashboard = () => {
+  const theme = useTheme();
+  const { dashboardColumns } = usecolumns();
+  const [dashboardLinks, setDashboardLinks] = useState<TableRowData[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await fetch('/api/dashboard');
+      if (!response.ok) throw new Error('Failed to fetch data');
+      const data = await response.json();
+      setDashboardLinks(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An unknown error occurred');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({
+    page: 0,
+    pageSize: 25,
+  });
+  const [sortModel, setSortModel] = useState<GridSortModel>([]);
+  const [filterModel, setFilterModel] = useState<GridFilterModel>({
+    items: []
+  });
+
+  const gridColumns: GridColDef[] = useMemo(() => {
+    const tooltipColumns = ['linkName', 'link'];
+    return dashboardColumns.map((col) => {
+      const baseCol: GridColDef = {
+        field: col.id,
+        headerName: col.label,
+        flex: 1,
+        minWidth: 120,
+        sortable: col.filter !== false,
+        filterable: col.filter !== false,
+        headerClassName: 'header-cell',
+        cellClassName: 'data-cell',
+        renderCell: (params) => {
+          if (col.id === 'view') {
+            return (
+              <IconButton
+                size="small"
+                color="primary"
+                onClick={() => window.open('source-monitoring/source-changes', '_blank')}
+                sx={{
+                  '&:hover': {
+                    backgroundColor: theme.palette.primary.light,
+                  }
+                }}
+              >
+                <Visibility fontSize="small" />
+              </IconButton>
+            );
+          }
+
+          if (col.id === 'link') {
+            return (
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <OpenInNew fontSize="small" color="action" />
+                <Tooltip title={params.value || 'No link'} placement="top" arrow>
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      color: theme.palette.primary.main,
+                      textDecoration: 'underline',
+                      cursor: 'pointer',
+                      '&:hover': {
+                        color: theme.palette.primary.dark,
+                      }
+                    }}
+                    onClick={() => window.open(params.value, '_blank')}
+                  >
+                    {params.value ? 'Open Link' : 'N/A'}
+                  </Typography>
+                </Tooltip>
+              </Box>
+            );
+          }
+
+          if (tooltipColumns.includes(col.id)) {
+            return (
+              <Tooltip title={params.value || 'No data'} placement="top" arrow>
+                <Typography
+                  variant="body2"
+                  sx={{
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {params.value || '-'}
+                </Typography>
+              </Tooltip>
+            );
+          }
+          
+          return (
+            <Typography variant="body2">
+              {params.value || '-'}
+            </Typography>
+          );
+        }
+      };
+
+      if (col.width) baseCol.width = col.width;
+      if (col.flex) baseCol.flex = col.flex;
+      if (col.minWidth) baseCol.minWidth = col.minWidth;
+      if (col.maxWidth) baseCol.maxWidth = col.maxWidth;
+
+      return baseCol;
+    });
+  }, [dashboardColumns, theme]);
+
+  return (
+    <AppLayout {...LayoutProperties}>
+      <Box
+        sx={{
+          position: 'relative',
+          height: 'calc(100vh - 100px)',
+          p: 4,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 2
+        }}
+      >
+        <Paper
+          elevation={2}
+          sx={{
+            p: 3,
+            borderRadius: 2,
+            height: '100%',
+            display: 'flex',
+            flexDirection: 'column',
+          }}
+        >
+          <Box
+            sx={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              mb: 3
+            }}
+          >
+            <Typography
+              variant="h6"
+              sx={{
+                fontWeight: 600,
+                color: theme.palette.text.primary,
+              }}
+            >
+              Source Notifications
+            </Typography>
+            
+            <Box>
+              <Tooltip title="Refresh data">
+                <IconButton
+                  onClick={fetchData}
+                  size="small"
+                  sx={{
+                    backgroundColor: theme.palette.action.hover,
+                    '&:hover': {
+                      backgroundColor: theme.palette.action.selected,
+                    }
+                  }}
+                >
+                  <Refresh fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            </Box>
+          </Box>
+
+          {error ? (
+            <Box
+              sx={{
+                flex: 1,
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                color: theme.palette.error.main,
+              }}
+            >
+              <Typography variant="body1">{error}</Typography>
+            </Box>
+          ) : loading ? (
+            <Box
+              sx={{
+                flex: 1,
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+              }}
+            >
+              <CircularProgress size={40} />
+            </Box>
+          ) : (
+            <Box sx={{ flex: 1, minHeight: 0 }}>
+              <DataGridComponent
+                columns={gridColumns}
+                rows={dashboardLinks}
+                paginationModel={paginationModel}
+                onPaginationModelChange={setPaginationModel}
+                pageSizeOptions={GLOBAL_TABLE_PAGINATION_OPTIONS}
+                rowCount={dashboardLinks.length}
+                serverPagination={false}
+                sortModel={sortModel}
+                onSortModelChange={setSortModel}
+                sortingMode="client"
+                filterModel={filterModel}
+                onFilterModelChange={setFilterModel}
+                loading={loading}
+                getRowId={(row) => row.id?.toString() || Math.random().toString()}
+                disableRowSelectionOnClick
+                sx={{
+                  '& .header-cell': {
+                    backgroundColor: theme.palette.grey[100],
+                    fontWeight: 600,
+                  },
+                  '& .data-cell': {
+                    borderBottom: `1px solid ${theme.palette.divider}`,
+                  },
+                  '& .MuiDataGrid-row:hover': {
+                    backgroundColor: theme.palette.action.hover,
+                  },
+                  '& .MuiDataGrid-cell:focus': {
+                    outline: 'none',
+                  },
+                  '& .MuiDataGrid-columnHeaders': {
+                    borderRadius: 0,
+                  },
+                }}
+                density="comfortable"
+                autoHeight={false}
+                disableColumnMenu={false}
+              />
+            </Box>
+          )}
+        </Paper>
+      </Box>
+    </AppLayout>
+  );
+};
+
+export default Dashboard;
