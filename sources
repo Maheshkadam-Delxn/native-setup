@@ -30,7 +30,7 @@ import { useSampleData } from '@/mockData/useSampleData';
 import useColumns from '@/hooks/useColumn';
 import { DataGridComponent } from '@/components/DataGrid';
 import SourceDetails from '../sourceDetails/page';
-import { Chip, Box, Typography } from '@mui/material';
+import { Chip, Box, Typography, useTheme } from '@mui/material';
 
 const renderCellWithTooltip = (params: any) => {
   return (
@@ -70,6 +70,7 @@ const statusColors = {
 };
 
 const SourceGrid: React.FC = () => {
+  const theme = useTheme();
   const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({
     pageSize: defaultPagesizeOptions[0],
     page: 0,
@@ -401,11 +402,6 @@ const SourceGrid: React.FC = () => {
               onClick={() => handleTabChange(tab.value)}
             >
               {tab.label}
-              {tab.disabled && (
-                <Tooltip title="Select a source first" placement="top">
-                  <span style={{ marginLeft: '8px' }}>🔒</span>
-                </Tooltip>
-              )}
             </TabItem>
           ))}
         </TabContainer>
@@ -444,8 +440,21 @@ export default SourceGrid;
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
 import styled from '@emotion/styled';
-import { Button, Chip } from '@mui/material';
+import { Button } from '@mui/material';
 
 export const Container = styled.div`
   display: flex;
@@ -464,6 +473,7 @@ export const Header = styled.div`
 export const CreateButton = styled(Button)`
   text-transform: none;
   font-weight: 600;
+  padding: 8px 16px;
 `;
 
 export const StatusIndicator = styled.div<{ color: string }>`
@@ -486,18 +496,28 @@ export const TabItem = styled.div<{ active: boolean; disabled?: boolean }>`
   color: ${({ active, disabled }) => 
     disabled ? '#bdbdbd' : active ? '#1976d2' : '#424242'};
   font-weight: ${({ active }) => (active ? '600' : '400')};
-  opacity: ${({ disabled }) => (disabled ? 0.7 : 1)};
+  opacity: ${({ disabled }) => (disabled ? 0.6 : 1)};
   transition: all 0.2s ease;
   position: relative;
   display: flex;
   align-items: center;
+  background-color: ${({ active }) => (active ? 'rgba(25, 118, 210, 0.08)' : 'transparent')};
 
   &:hover {
     background-color: ${({ disabled }) => (disabled ? 'transparent' : '#f5f5f5')};
   }
+
+  ${({ disabled }) => disabled && `
+    text-decoration: line-through;
+    text-decoration-color: rgba(0, 0, 0, 0.3);
+    text-decoration-thickness: 1px;
+  `}
 `;
 
 export const TabContent = styled.div`
   flex: 1;
   overflow: auto;
+  background: #fff;
+  border-radius: 4px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 `;
