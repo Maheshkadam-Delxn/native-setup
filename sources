@@ -18,10 +18,6 @@ import CustomElementModal from '@/components/CommonModal/CustomElementModal';
 import NewChildForm from '../childSource/page';
 import Applayout from '@/components/appLayout/page';
 import LayoutProperties from '../../mockData/appLayoutProps';
-import TabGroup from '@/components/TabGroup/TabGroup';
-import { useSampleData } from '@/mockData/useSampleData';
-import useColumns from '@/hooks/useColumn';
-import { DataGridComponent } from '@/components/DataGrid';
 import SourceDetails from '../sourceDetails/page';
 
 const renderCellWithTooltip = (params: any) => {
@@ -68,8 +64,6 @@ const SourceGrid: React.FC = () => {
     name: string;
   } | null>(null);
   const [activeTab, setActiveTab] = useState('sources');
-  const { sampleData } = useSampleData();
-  const { policyDetailVersionHistoryColumns } = useColumns();
   const [isCreateNewParent, setIsCreateNewParent] = useState(false);
   const [versionPagination, setVersionPagination] = useState<GridPaginationModel>({
     pageSize: defaultPagesizeOptions[0],
@@ -103,14 +97,14 @@ const SourceGrid: React.FC = () => {
           setModalOpen(true);
         };
         return (
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <span style={{ color: '#1976d2', cursor: 'pointer' }}>
+          <div className="d-flex gap-2">
+            <span className="text-primary cursor-pointer">
               <u>View Latest</u>
             </span>
             {row.showNewChild && (
               <div>
                 &nbsp;&nbsp;
-                <span style={{ color: '#1976d2', cursor: 'pointer' }}>
+                <span className="text-primary cursor-pointer">
                   <u>
                     <a
                       href="#"
@@ -172,6 +166,8 @@ const SourceGrid: React.FC = () => {
   ];
 
   const versionTooltipColumns = ['link', 'linkName', 'versionNotes'];
+  const { policyDetailVersionHistoryColumns } = useColumns();
+  const { sampleData } = useSampleData();
 
   const versionHistoryGridColumns: GridColDef[] =
     policyDetailVersionHistoryColumns.map((col) => {
@@ -246,39 +242,19 @@ const SourceGrid: React.FC = () => {
 
   const tabPanels: Record<string, React.ReactNode> = {
     sources: (
-      <>
-        <Header>
-          <CreateButton onClick={handleCreateNewParent}>
-            Create New Parent
-          </CreateButton>
-        </Header>
-        <DataGridComponent
-          rows={mocksourceGridRows}
-          columns={columns}
-          paginationModel={paginationModel}
-          onPaginationModelChange={setPaginationModel}
-          sortModel={sortModel}
-          onSortModelChange={setSortModel}
-          sortingMode={defaultSortingMode}
-          filterMode={defaultFilterMode}
-          pageSizeOptions={defaultPagesizeOptions}
-          selectedRowId={selectedSource?.id || null}
-          onRowSelectionChange={handleRowSelectionChange}
-        />
-        <CustomElementModal
-          open={modalOpen}
-          title={modalTitle}
-          ContentComponent={NewChildForm}
-          contentProps={{
-            parentLink: isCreateNewParent ? '' : sourceParentLink,
-            linkType: isCreateNewParent ? 'Parent' : 'child',
-            isCreateNewParent: `${isCreateNewParent}`,
-            onCancelConfirmed: () => setModalOpen(false),
-          }}
-          onClose={() => setModalOpen(false)}
-          large
-        />
-      </>
+      <DataGridComponent
+        rows={mocksourceGridRows}
+        columns={columns}
+        paginationModel={paginationModel}
+        onPaginationModelChange={setPaginationModel}
+        sortModel={sortModel}
+        onSortModelChange={setSortModel}
+        sortingMode={defaultSortingMode}
+        filterMode={defaultFilterMode}
+        pageSizeOptions={defaultPagesizeOptions}
+        selectedRowId={selectedSource?.id || null}
+        onRowSelectionChange={handleRowSelectionChange}
+      />
     ),
     details: selectedSource ? (
       <SourceDetails sourceId={Number(selectedSource.id)} />
@@ -328,36 +304,48 @@ const SourceGrid: React.FC = () => {
 
   return (
     <Applayout {...LayoutProperties}>
-      <Container className="p-6">
-        <div className="mb-6">
-          <h2 className="text-xl font-semibold text-gray-800">Sources</h2>
+      <Container className="p-4">
+        <div className="mb-4">
+          <h2 className="h4 text-dark">Sources</h2>
           <button
-            className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
+            className="btn btn-primary mb-3"
             onClick={handleCreateNewParent}
           >
             Create New Parent
           </button>
         </div>
-        <div className="border-b border-gray-200">
-          <nav className="flex space-x-6">
-            {tabs.map((tab) => (
+        <ul className="nav nav-tabs mb-4" role="tablist">
+          {tabs.map((tab) => (
+            <li className="nav-item" key={tab.value}>
               <button
-                key={tab.value}
+                className={`nav-link ${activeTab === tab.value ? 'active' : ''} ${
+                  tab.disabled ? 'disabled' : ''
+                }`}
                 onClick={() => handleTabChange(tab.value)}
-                className={`py-2 px-4 text-sm font-medium ${
-                  activeTab === tab.value
-                    ? 'border-b-2 border-blue-600 text-blue-600'
-                    : 'text-gray-500 hover:text-gray-700'
-                } ${tab.disabled ? 'cursor-not-allowed opacity-50' : ''}`}
                 disabled={tab.disabled}
               >
                 {tab.label}
               </button>
-            ))}
-          </nav>
-        </div>
-        <div className="mt-6">
+            </li>
+          ))}
+        </ul>
+        <div className="tab-content">
           {tabPanels[activeTab]}
+          {activeTab === 'sources' && (
+            <CustomElementModal
+              open={modalOpen}
+              title={modalTitle}
+              ContentComponent={NewChildForm}
+              contentProps={{
+                parentLink: isCreateNewParent ? '' : sourceParentLink,
+                linkType: isCreateNewParent ? 'Parent' : 'child',
+                isCreateNewParent: `${isCreateNewParent}`,
+                onCancelConfirmed: () => setModalOpen(false),
+              }}
+              onClose={() => setModalOpen(false)}
+              large
+            />
+          )}
         </div>
       </Container>
     </Applayout>
