@@ -1,0 +1,367 @@
+import * as React from 'react';
+import { useState } from 'react';
+import {
+  GridColDef,
+  GridSortModel,
+  GridPaginationModel,
+  GridFilterModel,
+} from '@mui/x-data-grid';
+import { Container, Header, CreateButton } from './styles';
+import Tooltip from '@mui/material/Tooltip';
+import { mocksourceGridRows } from '../../mockData/sourceGrid.mock';
+import {
+  defaultPagesizeOptions,
+  defaultSortingMode,
+  defaultFilterMode,
+} from '../../shared/datagridDefaults';
+import CustomElementModal from '@/components/CommonModal/CustomElementModal';
+import NewChildForm from '../childSource/page';
+import Applayout from '@/components/appLayout/page';
+import LayoutProperties from '../../mockData/appLayoutProps';
+import TabGroup from '@/components/TabGroup/TabGroup';
+import { useSampleData } from '@/mockData/useSampleData';
+import useColumns from '@/hooks/useColumn';
+import { DataGridComponent } from '@/components/DataGrid';
+import SourceDetails from '../sourceDetails/page';
+
+const renderCellWithTooltip = (params: any) => {
+  return (
+    <Tooltip
+      title={<span style={{ userSelect: 'text' }}>{params.value}</span>}
+      enterTouchDelay={0}
+      leaveTouchDelay={5000}
+      enterDelay={300}
+      leaveDelay={300}
+      placement="top"
+      PopperProps={{
+        modifiers: [{ name: 'offset', options: { offset: [0, -25] } }],
+      }}
+    >
+      <span
+        style={{
+          whiteSpace: 'nowrap',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          display: 'inline-block',
+          width: '100%',
+          userSelect: 'text',
+          cursor: 'text',
+        }}
+      >
+        {params.value}
+      </span>
+    </Tooltip>
+  );
+};
+
+const SourceGrid: React.FC = () => {
+  const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({
+    pageSize: defaultPagesizeOptions[0],
+    page: 0,
+  });
+  const [sortModel, setSortModel] = useState<GridSortModel>([]);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalTitle, setModalTitle] = useState<string>('Add New Child');
+  const [sourceParentLink, setParentLink] = useState<string>('');
+  const [selectedSource, setSelectedSource] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
+  const [activeTab, setActiveTab] = useState('sources');
+  const { sampleData } = useSampleData();
+  const { policyDetailVersionHistoryColumns } = useColumns();
+  const [isCreateNewParent, setIsCreateNewParent] = useState(false);
+  const [versionPagination, setVersionPagination] = useState<GridPaginationModel>({
+    pageSize: defaultPagesizeOptions[0],
+    page: 0,
+  });
+  const [versionSortModel, setVersionSortModel] = useState<GridSortModel>([]);
+  const [versionFilterModel, setVersionFilterModel] = useState<GridFilterModel>({
+    items: [],
+  });
+
+  const handleCreateNewParent = () => {
+    setModalTitle('Create New Parent');
+    setParentLink('');
+    setIsCreateNewParent(true);
+    setModalOpen(true);
+  };
+
+  const columns: GridColDef[] = [
+    {
+      field: 'actions',
+      headerName: '',
+      width: 160,
+      sortable: false,
+      filterable: false,
+      disableColumnMenu: true,
+      renderCell: ({ row }) => {
+        const handleNewChildClick = () => {
+          setModalTitle('Add New Child');
+          setParentLink(row.link.toString());
+          setIsCreateNewParent(false);
+          setModalOpen(true);
+        };
+        return (
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <span style={{ color: '#1976d2', cursor: 'pointer' }}>
+              <u>View Latest</u>
+            </span>
+            {row.showNewChild && (
+              <div>
+                &nbsp;&nbsp;
+                <span style={{ color: '#1976d2', cursor: 'pointer' }}>
+                  <u>
+                    <a
+                      href="#"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        handleNewChildClick();
+                      }}
+                    >
+                      New Child
+                    </a>
+                  </u>
+                </span>
+              </div>
+            )}
+          </div>
+        );
+      },
+    },
+    {
+      field: 'linkName',
+      headerName: 'Link Name',
+      flex: 1,
+      renderCell: renderCellWithTooltip,
+      filterable: true,
+    },
+    {
+      field: 'link',
+      headerName: 'Link',
+      flex: 2,
+      renderCell: renderCellWithTooltip,
+      filterable: true,
+    },
+    { field: 'linkType', headerName: 'Link Type', flex: 1, filterable: true },
+    {
+      field: 'linkStatus',
+      headerName: 'Link Status',
+      flex: 1,
+      filterable: true,
+    },
+    {
+      field: 'scheduledType',
+      headerName: 'Scheduled Type',
+      flex: 1,
+      filterable: true,
+    },
+    { field: 'createdOn', headerName: 'Created On', flex: 1, filterable: true },
+    {
+      field: 'lastUpdated',
+      headerName: 'Last Updated',
+      flex: 1,
+      filterable: true,
+    },
+    {
+      field: 'lastUpdatedBy',
+      headerName: 'Last Updated By',
+      flex: 1,
+      filterable: true,
+    },
+  ];
+
+  const versionTooltipColumns = ['link', 'linkName', 'versionNotes'];
+
+  const versionHistoryGridColumns: GridColDef[] =
+    policyDetailVersionHistoryColumns.map((col) => {
+      const baseCol: GridColDef = {
+        field: col.id,
+        headerName: col.label,
+        flex: 1,
+        sortable: col.filter !== false,
+        filterable: col.filter !== false,
+        renderCell: (params) => {
+          if (versionTooltipColumns.includes(col.id)) {
+            return (
+              <Tooltip title={params.value || '-'} placement="top-start" arrow>
+                <span
+                  style={{
+                    cursor: 'pointer',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {params.value || '-'}
+                </span>
+              </Tooltip>
+            );
+          }
+          return params.value || '-';
+        },
+      };
+      if (col.width) baseCol.width = col.width;
+      if (col.flex) baseCol.flex = col.flex;
+      if (col.minWidth) baseCol.minWidth = col.minWidth;
+      if (col.maxWidth) baseCol.maxWidth = col.maxWidth;
+      return baseCol;
+    });
+
+  const tabs = [
+    { label: 'Sources', value: 'sources' },
+    { label: 'Details', value: 'details', disabled: !selectedSource },
+    {
+      label: 'Version History',
+      value: 'versionHistory',
+      disabled: !selectedSource,
+    },
+    {
+      label: 'Notification History',
+      value: 'notificationHistory',
+      disabled: !selectedSource,
+    },
+    { label: 'History', value: 'history', disabled: !selectedSource },
+  ];
+
+  const handleRowSelectionChange = (
+    newSelectedRowId: string | null,
+    rowData?: any
+  ) => {
+    if (newSelectedRowId && rowData) {
+      setSelectedSource({ id: newSelectedRowId, name: rowData.linkName });
+    } else {
+      setSelectedSource(null);
+    }
+  };
+
+  const handleTabChange = (value: string) => {
+    const tab = tabs.find((t) => t.value === value);
+    if (tab?.disabled) {
+      setActiveTab('sources');
+    } else {
+      setActiveTab(value);
+    }
+  };
+
+  const tabPanels: Record<string, React.ReactNode> = {
+    sources: (
+      <>
+        <Header>
+          <CreateButton onClick={handleCreateNewParent}>
+            Create New Parent
+          </CreateButton>
+        </Header>
+        <DataGridComponent
+          rows={mocksourceGridRows}
+          columns={columns}
+          paginationModel={paginationModel}
+          onPaginationModelChange={setPaginationModel}
+          sortModel={sortModel}
+          onSortModelChange={setSortModel}
+          sortingMode={defaultSortingMode}
+          filterMode={defaultFilterMode}
+          pageSizeOptions={defaultPagesizeOptions}
+          selectedRowId={selectedSource?.id || null}
+          onRowSelectionChange={handleRowSelectionChange}
+        />
+        <CustomElementModal
+          open={modalOpen}
+          title={modalTitle}
+          ContentComponent={NewChildForm}
+          contentProps={{
+            parentLink: isCreateNewParent ? '' : sourceParentLink,
+            linkType: isCreateNewParent ? 'Parent' : 'child',
+            isCreateNewParent: `${isCreateNewParent}`,
+            onCancelConfirmed: () => setModalOpen(false),
+          }}
+          onClose={() => setModalOpen(false)}
+          large
+        />
+      </>
+    ),
+    details: selectedSource ? (
+      <SourceDetails sourceId={Number(selectedSource.id)} />
+    ) : null,
+    versionHistory: (
+      <DataGridComponent
+        columns={versionHistoryGridColumns}
+        rows={sampleData}
+        paginationModel={versionPagination}
+        onPaginationModelChange={setVersionPagination}
+        sortModel={versionSortModel}
+        onSortModelChange={setVersionSortModel}
+        filterModel={versionFilterModel}
+        onFilterModelChange={setVersionFilterModel}
+        sortingMode={defaultSortingMode}
+        filterMode={defaultFilterMode}
+        pageSizeOptions={defaultPagesizeOptions}
+        getRowId={(row) => row.id?.toString() || Math.random().toString()}
+        disableRowSelectionOnClick
+      />
+    ),
+    notificationHistory: selectedSource ? (
+      <div>
+        <p>
+          <strong>Source ID:</strong> {selectedSource.id}
+        </p>
+        <p>
+          <strong>Source Name:</strong> {selectedSource.name}
+        </p>
+      </div>
+    ) : (
+      <div>Please select a row to see Notification History.</div>
+    ),
+    history: selectedSource ? (
+      <div>
+        <p>
+          <strong>Source ID:</strong> {selectedSource.id}
+        </p>
+        <p>
+          <strong>Source Name:</strong> {selectedSource.name}
+        </p>
+      </div>
+    ) : (
+      <div>Please select a row to see History.</div>
+    ),
+  };
+
+  return (
+    <Applayout {...LayoutProperties}>
+      <Container className="p-6">
+        <div className="mb-6">
+          <h2 className="text-xl font-semibold text-gray-800">Sources</h2>
+          <button
+            className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
+            onClick={handleCreateNewParent}
+          >
+            Create New Parent
+          </button>
+        </div>
+        <div className="border-b border-gray-200">
+          <nav className="flex space-x-6">
+            {tabs.map((tab) => (
+              <button
+                key={tab.value}
+                onClick={() => handleTabChange(tab.value)}
+                className={`py-2 px-4 text-sm font-medium ${
+                  activeTab === tab.value
+                    ? 'border-b-2 border-blue-600 text-blue-600'
+                    : 'text-gray-500 hover:text-gray-700'
+                } ${tab.disabled ? 'cursor-not-allowed opacity-50' : ''}`}
+                disabled={tab.disabled}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </nav>
+        </div>
+        <div className="mt-6">
+          {tabPanels[activeTab]}
+        </div>
+      </Container>
+    </Applayout>
+  );
+};
+
+export default SourceGrid;
