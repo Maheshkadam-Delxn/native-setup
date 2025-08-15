@@ -86,3 +86,123 @@ const CustomElementModal: React.FC<CustomElementModalProps> = ({
 };
 
 export default CustomElementModal;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+'use client';
+import React from 'react';
+import { Modal, Box, Typography, IconButton, SxProps, Theme } from '@mui/material';
+import CloseIcon from '@mui/icons-material/Close';
+import {
+  modalBoxStyle,
+  headerBoxStyle,
+  contentBoxStyle,
+  modalLargeBoxStyle,
+  contentLargeBoxStyle,
+} from './CommonModal.styles';
+
+export interface CustomElementModalProps {
+  /** Controls the visibility of the modal */
+  open: boolean;
+  /** Optional title displayed in the modal header */
+  title?: string;
+  /** The component to render inside the modal content area */
+  ContentComponent: React.ElementType;
+  /** Props to pass to the ContentComponent */
+  contentProps?: Record<string, unknown>;
+  /** Callback function when modal is requested to close */
+  onClose: () => void;
+  /** If true, uses larger dimensions for the modal */
+  large?: boolean;
+  /** Special flag for parent component creation (document purpose) */
+  isCreateNewParent?: boolean;
+  /** Optional custom styles for the modal container */
+  sx?: SxProps<Theme>;
+}
+
+
+const CustomElementModal: React.FC<CustomElementModalProps> = ({
+  open,
+  title,
+  ContentComponent,
+  contentProps = {},
+  onClose,
+  large = false,
+  isCreateNewParent = false,
+  sx,
+}) => {
+  const handleClose = (event: {}, reason: 'backdropClick' | 'escapeKeyDown') => {
+    if (reason === 'backdropClick') return;
+    onClose();
+  };
+
+  // Blue color scheme matching Create New Parent button
+  const blueTheme = {
+    primary: '#1976d2',
+    hover: '#1565c0',
+    contrastText: '#ffffff',
+  };
+
+  return (
+    <Modal
+      open={open}
+      onClose={handleClose}
+      aria-labelledby="modal-title"
+      aria-describedby="modal-description"
+    >
+      <Box 
+        sx={{
+          ...(large ? modalLargeBoxStyle : modalBoxStyle),
+          ...sx,
+        }}
+      >
+        <Box sx={{
+          ...headerBoxStyle,
+          backgroundColor: blueTheme.primary,
+          color: blueTheme.contrastText,
+          padding: '16px 24px',
+        }}>
+          <Typography variant="h6" id="modal-title" sx={{ fontWeight: 600 }}>
+            {title}
+          </Typography>
+          <IconButton 
+            onClick={onClose} 
+            size="small"
+            aria-label="close modal"
+            sx={{ 
+              marginLeft: 'auto',
+              color: blueTheme.contrastText,
+              '&:hover': {
+                backgroundColor: blueTheme.hover,
+              }
+            }}
+          >
+            <CloseIcon />
+          </IconButton>
+        </Box>
+        
+        <Box 
+          sx={large ? contentLargeBoxStyle : contentBoxStyle}
+          id="modal-description"
+        >
+          <ContentComponent {...contentProps} />
+        </Box>
+      </Box>
+    </Modal>
+  );
+};
+
+export default CustomElementModal;
